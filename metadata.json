@@ -1,0 +1,11 @@
+{
+  "name": "Remix Remix WeatherGPT — AI Weather Alert \u0026 Assistance Agent",
+  "description": "AI-powered weather alert and assistance command center for the Hindu AI Nexus Hackathon 2026. Features real-time forecast intelligence, natural language weather Q\u0026A with Gemini 3.8 Flash, transparent meteorological reasoning, smart alerts, hourly/7-day forecasts, and nearby assistance.",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

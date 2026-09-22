@@ -1,0 +1,124 @@
+{
+  "entities": {
+    "SavedLocation": {
+      "title": "SavedLocation",
+      "description": "User saved favorite meteorological locations and weather stations",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the location or city",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "region": {
+          "type": "string",
+          "description": "State, province, or region",
+          "maxLength": 100
+        },
+        "country": {
+          "type": "string",
+          "description": "Country name or code",
+          "maxLength": 100
+        },
+        "lat": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "lon": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        },
+        "userId": {
+          "type": "string",
+          "description": "UID of the owner user",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": ["name", "lat", "lon", "userId", "createdAt"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "User specific weather application preferences and units",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "temperatureUnit": {
+          "type": "string",
+          "description": "Selected unit of temperature",
+          "enum": ["celsius", "fahrenheit"]
+        },
+        "voiceEnabled": {
+          "type": "boolean",
+          "description": "Whether voice narration is enabled"
+        },
+        "visualMode": {
+          "type": "string",
+          "description": "Centerpiece visualization mode",
+          "enum": ["orb", "globe"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last update"
+        }
+      },
+      "required": ["userId", "temperatureUnit", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Persisted chat queries and AI Omni weather reasoning responses",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "UID of the user who initiated the conversation",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sender": {
+          "type": "string",
+          "description": "Origin of the message",
+          "enum": ["user", "assistant"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Content of the weather prompt or response",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of creation"
+        }
+      },
+      "required": ["userId", "sender", "text", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/savedLocations/{locationId}": {
+      "schema": "SavedLocation",
+      "description": "Subcollection of saved favorite weather spots for a user"
+    },
+    "/users/{userId}/preferences/{prefId}": {
+      "schema": "UserPreferences",
+      "description": "User UI and weather unit preferences"
+    },
+    "/users/{userId}/chatHistory/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "User chat interaction history with Gemini Omni agent"
+    }
+  }
+}

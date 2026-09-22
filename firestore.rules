@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Catch-All Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Helper Primitives
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'sasankm2009@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity Validations
+    function isValidSavedLocation(data, userId) {
+      return data.keys().hasAll(['name', 'lat', 'lon', 'userId', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'region', 'country', 'lat', 'lon', 'userId', 'createdAt']) &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        (!('region' in data) || (data.region is string && data.region.size() <= 100)) &&
+        (!('country' in data) || (data.country is string && data.country.size() <= 100)) &&
+        data.lat is number &&
+        data.lon is number &&
+        data.createdAt == request.time;
+    }
+
+    function isValidUserPreferences(data, userId) {
+      return data.keys().hasAll(['userId', 'temperatureUnit', 'updatedAt']) &&
+        data.keys().hasOnly(['userId', 'temperatureUnit', 'voiceEnabled', 'visualMode', 'updatedAt']) &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        (data.temperatureUnit == 'celsius' || data.temperatureUnit == 'fahrenheit') &&
+        (!('voiceEnabled' in data) || data.voiceEnabled is bool) &&
+        (!('visualMode' in data) || (data.visualMode == 'orb' || data.visualMode == 'globe')) &&
+        data.updatedAt == request.time;
+    }
+
+    function isValidChatMessage(data, userId) {
+      return data.keys().hasAll(['userId', 'sender', 'text', 'createdAt']) &&
+        data.keys().hasOnly(['userId', 'sender', 'text', 'createdAt']) &&
+        data.userId == userId &&
+        data.userId == request.auth.uid &&
+        (data.sender == 'user' || data.sender == 'assistant') &&
+        data.text is string && data.text.size() > 0 && data.text.size() <= 2000 &&
+        data.createdAt == request.time;
+    }
+
+    // User Data Isolation & Subcollections
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+
+      match /savedLocations/{locationId} {
+        allow get: if isOwner(userId) && isValidId(locationId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(locationId) && isValidSavedLocation(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(locationId);
+      }
+
+      match /preferences/{prefId} {
+        allow get: if isOwner(userId) && isValidId(prefId);
+        allow list: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidId(prefId) && isValidUserPreferences(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(prefId);
+      }
+
+      match /chatHistory/{messageId} {
+        allow get: if isOwner(userId) && isValidId(messageId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(messageId) && isValidChatMessage(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(messageId);
+      }
+    }
+  }
+}
